@@ -1,5 +1,6 @@
 import os
 import requests
+from time import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,7 +12,7 @@ RESET_COLOR = '\033[0m'      # Reset color
 def convert_bytes_to_mb(bytes_size):
     return bytes_size / (1024 * 1024)  # Convert bytes to megabytes
 
-def seqDownload(base_url, start_index, end_index, custom_iterator, file_extension, output_folder):
+def seqDownload(base_url, start_index, end_index, custom_iterator, file_extension, output_folder, mode):
     # Create the output folder if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
 
@@ -22,6 +23,10 @@ def seqDownload(base_url, start_index, end_index, custom_iterator, file_extensio
 
     total_downloaded_files = 0
     total_downloaded_size = 0
+    total_skipped_files = 0
+    fileTotal = end_index - start_index + 1
+
+    print(f"\nStart to downloading {fileTotal} .{file_extension} files in .\{output_folder}")
 
     for i in range(start_index, end_index + 1):
         if custom_iterator:
@@ -31,30 +36,55 @@ def seqDownload(base_url, start_index, end_index, custom_iterator, file_extensio
         
         filename = os.path.join(output_folder, f"{custom_iterator}_{i}.{file_extension}" if custom_iterator else f"{i}.{file_extension}")
 
-        # Download the image
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            total_size = int(response.headers.get('content-length', 0))
-            total_size_mb = convert_bytes_to_mb(total_size)
-            downloaded_size = 0
-            with open(filename, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded_size += len(chunk)
-                        downloaded_size_mb = convert_bytes_to_mb(downloaded_size)
-                        print(f"Downloading {filename} {downloaded_size_mb:.2f}/{total_size_mb:.2f} MB", end='\r')
-            
-            # Increment counters for downloaded files and total size
-            total_downloaded_files += 1
-            total_downloaded_size += total_size
+        # Check if the file already exists
+        if os.path.exists(filename):
+            if mode == 1:
+                # Mode 1: Replace existing files
+                os.remove(filename)
+            elif mode == 2:
+                # Mode 2: Skip existing files and continue to the next file
+                total_skipped_files += 1
+                print(f"File {filename} already exists. Skipping...")
+                continue
 
-            print(f"\nDownloaded {filename}")  # Add a newline before printing the filename
-        else:
-            print(f"Failed to download: {url}")
+        try:
+            start_time = time()
+            response = requests.get(url, stream=True, timeout=3)  # Timeout set to 3 seconds
 
-    # Print total downloaded files and total size
+            if response.status_code == 200:
+                total_size = int(response.headers.get('content-length', 0))
+                total_size_mb = convert_bytes_to_mb(total_size)
+                downloaded_size = 0
+
+                with open(filename, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded_size += len(chunk)
+                            downloaded_size_mb = convert_bytes_to_mb(downloaded_size)
+                            print(f"Downloading {filename} {downloaded_size_mb:.2f}/{total_size_mb:.2f} MB", end='\r')
+                
+                total_downloaded_files += 1
+                total_downloaded_size += total_size
+
+                print(f"\nDownloaded {filename}")
+            else:
+                print(f"Failed to download: {url}")
+
+            end_time = time()
+            elapsed_time = end_time - start_time
+
+            if elapsed_time >= 3:
+                print("Timeout reached. Skipping to the next file.")
+
+        except requests.exceptions.Timeout:
+            print("Timeout occurred. Skipping to the next file.")
+        
+        except Exception as e:
+            print(f"Error occurred while downloading: {e}")
+
     total_downloaded_size_mb = convert_bytes_to_mb(total_downloaded_size)
+    print(f"There {total_skipped_files} skipped file due duplicated")
     print(f"Total download {total_downloaded_files} files ({total_downloaded_size_mb:.2f} MB)")
 
 
@@ -67,4 +97,4 @@ if __name__ == "__main__":
     end_index = int(iterator)
     output_folder = os.getenv("FOLDER_NAME") or "output"  # Set default value to "output" if FOLDER_NAME is empty
 
-    seqDownload(base_url, start_index, end_index, custom_iterator, file_extension, output_folder)
+    seqDownload(base_url, start_index, 7, custom_iterator, file_extension, output_folder, 2)
