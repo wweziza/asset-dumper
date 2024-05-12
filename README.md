@@ -17,3 +17,5 @@ FOLDER_NAME= OUTPUT
 ```
 
 Last, `py main.py`
+
+If you want to use this as library, feel free to see this [sequentialdw](htps://github.com/wweziza/sequentialdw)
