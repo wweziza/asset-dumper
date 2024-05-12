@@ -11,7 +11,7 @@ RESET_COLOR = '\033[0m'      # Reset color
 def convert_bytes_to_mb(bytes_size):
     return bytes_size / (1024 * 1024)  # Convert bytes to megabytes
 
-def download_images(base_url, start_index, end_index, custom_iterator, file_extension, output_folder):
+def seqDownload(base_url, start_index, end_index, custom_iterator, file_extension, output_folder):
     # Create the output folder if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
 
@@ -55,4 +55,4 @@ if __name__ == "__main__":
     end_index = int(iterator)
     output_folder = os.getenv("FOLDER_NAME") or "output"  # Set default value to "output" if FOLDER_NAME is empty
 
-    download_images(base_url, start_index, end_index, custom_iterator, file_extension, output_folder)
+    seqDownload(base_url, start_index, end_index, custom_iterator, file_extension, output_folder)
