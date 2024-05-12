@@ -20,6 +20,9 @@ def seqDownload(base_url, start_index, end_index, custom_iterator, file_extensio
         print(f"{WARNING_COLOR}WARNING: File extension is empty. Pausing at first trying / first download.{RESET_COLOR}")
         input("Press Enter to continue...")
 
+    total_downloaded_files = 0
+    total_downloaded_size = 0
+
     for i in range(start_index, end_index + 1):
         if custom_iterator:
             url = f"{base_url}/{custom_iterator}_{i}.{file_extension}"
@@ -27,7 +30,6 @@ def seqDownload(base_url, start_index, end_index, custom_iterator, file_extensio
             url = f"{base_url}/{i}.{file_extension}"
         
         filename = os.path.join(output_folder, f"{custom_iterator}_{i}.{file_extension}" if custom_iterator else f"{i}.{file_extension}")
-
 
         # Download the image
         response = requests.get(url, stream=True)
@@ -42,9 +44,19 @@ def seqDownload(base_url, start_index, end_index, custom_iterator, file_extensio
                         downloaded_size += len(chunk)
                         downloaded_size_mb = convert_bytes_to_mb(downloaded_size)
                         print(f"Downloading {filename} {downloaded_size_mb:.2f}/{total_size_mb:.2f} MB", end='\r')
+            
+            # Increment counters for downloaded files and total size
+            total_downloaded_files += 1
+            total_downloaded_size += total_size
+
             print(f"\nDownloaded {filename}")  # Add a newline before printing the filename
         else:
             print(f"Failed to download: {url}")
+
+    # Print total downloaded files and total size
+    total_downloaded_size_mb = convert_bytes_to_mb(total_downloaded_size)
+    print(f"Total download {total_downloaded_files} files ({total_downloaded_size_mb:.2f} MB)")
+
 
 if __name__ == "__main__":
     base_url = os.getenv("BASE_URL")
